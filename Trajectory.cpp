@@ -26,11 +26,17 @@ void Trajectory::updateTrajectory(double dt){
 	
 }
 
-void Trajectory::drawTrajectory(sf::RenderWindow* window){
-	vertices.push_back(sf::Vertex(sf::Vector2f(
-		(body->getPos().x - body->barycenter->getPos().x)*ScaleConst + 400,
-		(body->getPos().y - body->barycenter->getPos().y)*ScaleConst + 240
-		)));
-	if (vertices.size() > 10000) vertices.erase(vertices.begin());
-	window->draw(&vertices[0], vertices.size(), sf::LinesStrip);
+void Trajectory::drawTrajectory(sf::RenderWindow * window, double scaleConstant){
+	if (scaleConstant != scalec) {
+		for (int i = 0; i < pastP.size(); i++) {
+			pastP[i].position = sf::Vector2f((pastP[i].position.x - 400)*(scaleConstant / scalec) + 400,
+				(pastP[i].position.y - 240)*(scaleConstant / scalec) + 240);
+		}
+		this->scalec = scaleConstant;
+	}
+	pastP.push_back(sf::Vertex(sf::Vector2f(
+		(body->getPos().x - body->barycenter->getPos().x)*scalec + 400,
+		(body->getPos().y - body->barycenter->getPos().y)*scalec + 240)));
+	if (pastP.size() > 10000) pastP.erase(pastP.begin());
+	window->draw(&pastP[0], pastP.size(), sf::LinesStrip);
 }

@@ -1,7 +1,6 @@
 #pragma once
 #define AU 1.496e+11
 #define GConst 0.00000000006674
-#define ScaleConst 0.0000000003
 #define StepTime 60*60*24*30
 #include <SFML\Graphics.hpp>
 #include <vector>
@@ -18,6 +17,7 @@ public:
 	void onUpdate();
 	void onDraw();
 private:
+	double scaleConst = 0.0000000003;
 	void onStart(); // FUCK YOU C++ s
 	void onSave();
 	std::string filename;

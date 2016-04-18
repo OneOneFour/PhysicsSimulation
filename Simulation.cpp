@@ -88,13 +88,13 @@ void Simulation::onDraw(){
 	for (int i = 0; i < bodies.size(); i++) {
 		bodies[i]->update(dt);
 		//update bary
-		bodies[i]->getTrajectory().drawTrajectory(&window);
+		bodies[i]->getTrajectory().drawTrajectory(&window,scaleConst);
 		shape.setFillColor(bodies[i]->identify);
 		shape.setRadius(5);
 		shape.setOrigin(5, 5);
 		shape.setPosition(sf::Vector2f(
-			((bodies[i]->getPos().x - barycenter.getPos().x) * ScaleConst) + 400,
-			((bodies[i]->getPos().y - barycenter.getPos().y) * ScaleConst) + 240
+			((bodies[i]->getPos().x - barycenter.getPos().x) * scaleConst) + 400,
+			((bodies[i]->getPos().y - barycenter.getPos().y) * scaleConst) + 240
 			));
 		window.draw(shape);
 		
@@ -106,7 +106,6 @@ void Simulation::onDraw(){
 		 240
 		));
 	baryPoint.setFillColor(sf::Color::Red);
-	window.draw(baryPoint);
 }
 
 void Simulation::onStart(){
@@ -132,6 +131,10 @@ void Simulation::onStart(){
 					onSave();
 				}
 				window.close();
+			}
+			if (e.type == sf::Event::MouseWheelMoved) {
+				std::cout << e.mouseWheel.delta << std::endl;
+				scaleConst *= (e.mouseWheel.delta > 0) ? 5 : 0.2;
 			}
 		}
 		onUpdate();
