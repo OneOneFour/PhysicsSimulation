@@ -1,32 +1,59 @@
 #include "Simulation.hpp"
 #include "Body.hpp"
-
+#include <iostream>
 Simulation::Simulation():barycenter(){
-	window.create(sf::VideoMode(800, 480), "Physics Simulation");
-	addBody(new Body(&barycenter, Vector3D(0, 0, 0), 1.989*pow(10, 30), Vector3D(0, 0, 0),sf::Color::Yellow));
-	addBody(new Body(&barycenter, Vector3D(1.49 * pow(10, 11), 0, 0), 5.972 *pow(10, 24), Vector3D(0, 30000, 0),sf::Color::Blue));
-	addBody(new Body(&barycenter, Vector3D(1.08 * pow(10, 11), 0, 0), 4.86 *pow(10, 24), Vector3D(0, 35000, 0), sf::Color::Magenta));
-	addBody(new Body(&barycenter, Vector3D(2.27 * pow(10, 11), 0, 0), 6.39 *pow(10, 23), Vector3D(0, 24100, 0),sf::Color::Red));
-	addBody(new Body(&barycenter, Vector3D(7.78 * pow(10, 11), 0, 0), 1.8 *pow(10, 27), Vector3D(0, 13100, 0), sf::Color::White));
-	simClock.restart();
-	window.setVerticalSyncEnabled(false);
-	window.setFramerateLimit(0);
-	while (window.isOpen()) {
-		dt = simClock.restart().asSeconds() * StepTime;
-		if (dt == 0) dt = 1.0 / 1000.0; //prevent divion by zero
-		sf::Event e;
-		while (window.pollEvent(e)) {
-			if (e.type == sf::Event::Closed) {
-				window.close();
-			}
-		}
-		onUpdate();
-		window.clear(sf::Color::Black);
-		onDraw();
-		window.display();
-	}
+	onStart();
+	filename = "";
 }
 
+Simulation::Simulation(std::ifstream & fileStream, std::string & filename):barycenter(){
+	//check file is okay again
+	if (!fileStream) {
+		std::cout << "Something bad happened when creating a simulation" << std::endl;
+		delete this;//SUICICDE
+		return;
+	}
+	std::string lineData;
+	while (std::getline(fileStream, lineData)) {
+		lineData.erase(std::remove_if(lineData.begin(), lineData.end(), isspace), lineData.end()); //die whitespace
+		if (lineData.find("Body{") != std::string::npos) {
+			double mass = 0;
+			Vector3D pos, velocity;
+			sf::Color color;
+			while (std::getline(fileStream, lineData)) {
+				lineData.erase(std::remove_if(lineData.begin(), lineData.end(), isspace), lineData.end());
+				if (lineData.find("mass") != std::string::npos) {
+					mass = std::atof(lineData.substr(5).c_str());
+					continue;
+				}
+				if (lineData.find("pos") != std::string::npos) {
+					pos = toVector(lineData, 4);
+					continue;
+				}
+				if (lineData.find("vel") != std::string::npos) {
+					velocity = toVector(lineData, 4);
+					continue;
+				}
+				if (lineData.find("color") != std::string::npos) {
+					Vector3D colorVector = toVector(lineData, 6);
+					color = sf::Color((int)colorVector.x, (int)colorVector.y, (int)colorVector.z);
+					continue;
+				}
+				if (mass == 0) {
+					//BAD BAD BAD BAD BAD BAD BAD BAD BAD
+					std::cout << "Something BAD BAD BAD" << std::endl;
+					break;
+				}
+				addBody(new Body(&barycenter, pos, mass, velocity, color));
+				std::cout << "Body created at " << pos.toString() << std::endl;
+				if (lineData.find("}") != std::string::npos) break;
+			}
+		}
+	}
+	this->filename = filename.substr(0, filename.size() - 4);
+	fileStream.close();
+	onStart();
+}
 
 Simulation::~Simulation(){
 	while (!bodies.empty()) {
@@ -80,4 +107,64 @@ void Simulation::onDraw(){
 		));
 	baryPoint.setFillColor(sf::Color::Red);
 	window.draw(baryPoint);
+}
+
+void Simulation::onStart(){
+	window.create(sf::VideoMode(800, 480), filename + " Physics Simulation");
+	simClock.restart();
+	window.setVerticalSyncEnabled(false);
+	window.setFramerateLimit(0);
+	while (window.isOpen()) {
+		dt = simClock.restart().asSeconds() * StepTime;
+		if (dt == 0) dt = 1.0 / 1000.0; //prevent divion by zero
+		sf::Event e;
+		while (window.pollEvent(e)) {
+			if (e.type == sf::Event::Closed) {
+				std::cout << "Save the file(Y/N)?" << std::endl;
+				std::string response;
+				std::cin >> response;
+				if (response == ("Y")) {
+					std::cout << "Enter file name. Press * to overwrite current file" << std::endl;
+					std::cin >> response;
+					if (response !="*") {
+						this->filename = response;
+					}
+					onSave();
+				}
+				window.close();
+			}
+		}
+		onUpdate();
+		window.clear(sf::Color::Black);
+		onDraw();
+		window.display();
+	}
+}
+
+void Simulation::onSave(){
+	std::ofstream saveFile;
+	saveFile.open(filename + ".sim",std::ios::out|std::ios::trunc);
+	for (int i = 0; i < bodies.size(); i++) {
+		saveFile << "Body{\n";
+		saveFile << "mass=" << bodies[i]->getMass() << "\n";
+		saveFile << "pos=" << bodies[i]->getPos().x << "," << bodies[i]->getPos().y << "," << bodies[i]->getPos().z << "\n";
+		saveFile << "vel=" << bodies[i]->getVelocity().x <<","<<bodies[i]->getVelocity().y<<","<<bodies[i]->getVelocity().z <<"\n";
+		saveFile << "color="<<(int)bodies[i]->identify.r <<","<<(int)bodies[i]->identify.g<<","<<(int)bodies[i]->identify.b <<"\n";
+		saveFile << "}\n";
+	}
+	saveFile.flush();
+	saveFile.close();
+}
+
+Vector3D Simulation::toVector(std::string lineData,int offset = 0)
+{
+	size_t cPos = lineData.find(",");
+	if (cPos == std::string::npos) {
+		//SOMETHIGN BAD HAPPENED
+	}
+	double x = std::atof(lineData.substr(offset, cPos).c_str());
+	size_t scPos = lineData.find(",", cPos + 1);
+	double y = std::atof(lineData.substr(cPos+1, scPos).c_str());
+	double z = std::atof(lineData.substr(scPos+1).c_str());
+	return Vector3D(x, y, z);
 }

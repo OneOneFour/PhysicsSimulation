@@ -2,13 +2,13 @@
 #include "Trajectory.hpp"
 
 
-Body::Body(Body* barycenter,Vector3D position,double mass,sf::Color color):Body(){
+Body::Body(Body* barycenter,Vector3D position,double mass,sf::Color color = sf::Color::White):Body(){
 	this->barycenter = barycenter;
 	this->position = position;
 	this->mass = mass;
 	this->identify = color;
 }
-Body::Body(Body* barycenter ,Vector3D position,double mass,Vector3D velocity,sf::Color color):Body(barycenter,position,mass,color) {
+Body::Body(Body* barycenter ,Vector3D position,double mass,Vector3D velocity,sf::Color color = sf::Color::White):Body(barycenter,position,mass,color) {
 	this->velocity = velocity;
 }
 Body::~Body(){
