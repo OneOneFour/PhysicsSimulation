@@ -39,14 +39,16 @@ Simulation::Simulation(std::ifstream & fileStream, std::string & filename):baryc
 					color = sf::Color((int)colorVector.x, (int)colorVector.y, (int)colorVector.z);
 					continue;
 				}
-				if (mass == 0) {
-					//BAD BAD BAD BAD BAD BAD BAD BAD BAD
-					std::cout << "Something BAD BAD BAD" << std::endl;
+				if (lineData.find("}") != std::string::npos) {
+					if (mass == 0) {
+						//BAD BAD BAD BAD BAD BAD BAD BAD BAD
+						std::cout << "Something BAD BAD BAD" << std::endl;
+						break;
+					}
+					addBody(new Body(&barycenter,&bodies, pos, mass, velocity, color));
+					std::cout << "Body created at " << pos.toString() << std::endl;
 					break;
 				}
-				addBody(new Body(&barycenter, pos, mass, velocity, color));
-				std::cout << "Body created at " << pos.toString() << std::endl;
-				if (lineData.find("}") != std::string::npos) break;
 			}
 		}
 	}
@@ -64,37 +66,30 @@ Simulation::~Simulation(){
 
 void Simulation::addBody(Body* body){
 	bodies.push_back(body);
-
 	//update barycenter
-
 }
 
-void Simulation::onUpdate(){
+void Simulation::onUpdate(double delta){
 	barycenter.setPos(Vector3D(0, 0, 0));
 	barycenter.setMass(0);
-	for (int i = 0; i < bodies.size(); i++) {
-		barycenter.setPos((barycenter.getPos() * barycenter.getMass() + bodies[i]->getPos() * bodies[i]->getMass()) / (barycenter.getMass() + bodies[i]->getMass()));
-		barycenter.setMass(barycenter.getMass() + bodies[i]->getMass());
-		for (int j = 0; j < bodies.size(); j++) {
-			if (i == j) continue;
-			Vector3D dir = (bodies[j]->getPos() - bodies[i]->getPos()).getNormalized();
-			double forceMag = (GConst * bodies[j]->getMass() * bodies[i]->getMass()) / Vector3D::getDistanceSq(bodies[i]->getPos(), bodies[j]->getPos());
-			bodies[i]->addForce(dir * forceMag);
-		}
-	}
+	for each(Body* b in bodies) {
+		b->update(delta, eulerian, runTimeSeconds);
+		barycenter.setPos((barycenter.getPos() * barycenter.getMass() + b->getPos()*b->getMass()) / (barycenter.getMass() + b->getMass()));
+		barycenter.setMass(barycenter.getMass() + b->getMass());
+	} 
 }
 
 void Simulation::onDraw(){	
 	for (int i = 0; i < bodies.size(); i++) {
-		bodies[i]->update(dt);
 		//update bary
-		bodies[i]->getTrajectory().drawTrajectory(&window,scaleConst);
+		bodies[i]->getTrajectory().drawTrajectory(&window,scaleConst,xoffset,yoffset);
 		shape.setFillColor(bodies[i]->identify);
-		shape.setRadius(5);
-		shape.setOrigin(5, 5);
+		double radius = std::log10(bodies[i]->getMass()) -20;
+		shape.setRadius(radius);
+		shape.setOrigin(radius, radius);
 		shape.setPosition(sf::Vector2f(
-			((bodies[i]->getPos().x - barycenter.getPos().x) * scaleConst) + 400,
-			((bodies[i]->getPos().y - barycenter.getPos().y) * scaleConst) + 240
+			((bodies[i]->getPos().x - barycenter.getPos().x) * scaleConst) + 400 + xoffset,
+			((bodies[i]->getPos().y - barycenter.getPos().y) * scaleConst) + 240 + yoffset
 			));
 		window.draw(shape);
 		
@@ -102,10 +97,11 @@ void Simulation::onDraw(){
 	baryPoint = sf::CircleShape(5, 3);
 	baryPoint.setOrigin(5, 5);
 	baryPoint.setPosition(sf::Vector2f(
-		 400,
-		 240
+		 400 + xoffset,
+		 240 + yoffset
 		));
 	baryPoint.setFillColor(sf::Color::Red);
+	window.draw(baryPoint);
 }
 
 void Simulation::onStart(){
@@ -114,8 +110,7 @@ void Simulation::onStart(){
 	window.setVerticalSyncEnabled(false);
 	window.setFramerateLimit(0);
 	while (window.isOpen()) {
-		dt = simClock.restart().asSeconds() * StepTime;
-		if (dt == 0) dt = 1.0 / 1000.0; //prevent divion by zero
+		frameTime = simClock.restart().asSeconds();
 		sf::Event e;
 		while (window.pollEvent(e)) {
 			if (e.type == sf::Event::Closed) {
@@ -137,10 +132,33 @@ void Simulation::onStart(){
 				scaleConst *= (e.mouseWheel.delta > 0) ? 5 : 0.2;
 			}
 		}
-		onUpdate();
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
+			xoffset += 5;
+			
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
+			xoffset -= 5;
+
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
+			yoffset += 5;
+
+		}
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
+			yoffset -= 5;
+
+		}
+		//Step this on a fixed time step...
+		while (frameTime > 0.0) {
+			double delta = std::min(frameTime,dt );//is the fps above or below target 
+			onUpdate(delta*stepTime);
+			frameTime -= delta;
+			runTimeSeconds += delta*stepTime;
+		}
 		window.clear(sf::Color::Black);
 		onDraw();
 		window.display();
+		runTimeSeconds += dt * stepTime;
 	}
 }
 
