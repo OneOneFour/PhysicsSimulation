@@ -82,14 +82,14 @@ void Simulation::onUpdate(double delta){
 void Simulation::onDraw(){	
 	for (int i = 0; i < bodies.size(); i++) {
 		//update bary
-		bodies[i]->getTrajectory().drawTrajectory(&window,scaleConst,xoffset,yoffset);
+		bodies[i]->getTrajectory().drawTrajectory(&window,scaleConst);
 		shape.setFillColor(bodies[i]->identify);
 		double radius = std::log10(bodies[i]->getMass()) -20;
 		shape.setRadius(radius);
 		shape.setOrigin(radius, radius);
 		shape.setPosition(sf::Vector2f(
-			((bodies[i]->getPos().x - barycenter.getPos().x) * scaleConst) + 400 + xoffset,
-			((bodies[i]->getPos().y - barycenter.getPos().y) * scaleConst) + 240 + yoffset
+			((bodies[i]->getPos().x - barycenter.getPos().x) * scaleConst) + 400,
+			((bodies[i]->getPos().y - barycenter.getPos().y) * scaleConst) + 240
 			));
 		window.draw(shape);
 		
@@ -97,8 +97,8 @@ void Simulation::onDraw(){
 	baryPoint = sf::CircleShape(5, 3);
 	baryPoint.setOrigin(5, 5);
 	baryPoint.setPosition(sf::Vector2f(
-		 400 + xoffset,
-		 240 + yoffset
+		 400,
+		 240
 		));
 	baryPoint.setFillColor(sf::Color::Red);
 	window.draw(baryPoint);
@@ -109,6 +109,8 @@ void Simulation::onStart(){
 	simClock.restart();
 	window.setVerticalSyncEnabled(false);
 	window.setFramerateLimit(0);
+	view.setSize(800, 480);
+	view.setCenter(view.getSize().x / 2, view.getSize().y / 2);
 	while (window.isOpen()) {
 		frameTime = simClock.restart().asSeconds();
 		sf::Event e;
@@ -133,19 +135,19 @@ void Simulation::onStart(){
 			}
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
-			xoffset += 5;
+			view.move(sf::Vector2f(50*frameTime,0));
 			
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
-			xoffset -= 5;
+			view.move(sf::Vector2f(-50*frameTime, 0));
 
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-			yoffset += 5;
+			view.move(sf::Vector2f(0, 50*frameTime));
 
 		}
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-			yoffset -= 5;
+			view.move(sf::Vector2f(0, -50*frameTime));
 
 		}
 		//Step this on a fixed time step...
@@ -155,6 +157,7 @@ void Simulation::onStart(){
 			frameTime -= delta;
 			runTimeSeconds += delta*stepTime;
 		}
+		window.setView(view);
 		window.clear(sf::Color::Black);
 		onDraw();
 		window.display();

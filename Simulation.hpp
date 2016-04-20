@@ -16,7 +16,7 @@ public:
 	void onUpdate(double delta);
 	void onDraw();
 private:
-	int xoffset, yoffset;
+	sf::View view;
 	bool eulerian = false;
 	double runTimeSeconds;
 	double stepTime = 60 * 60 * 24 * 30;

@@ -8,12 +8,10 @@ public:
 	Trajectory(Body* body);
 	~Trajectory();
 	void updateTrajectory(double dt);
-	void drawTrajectory(sf::RenderWindow* window,double scaleConstant,int xoffset,int yoffset);
+	void drawTrajectory(sf::RenderWindow* window,double scaleConstant);
 private:
-	
 	std::vector<sf::Vertex> pastP;
 	double scalec;
-	int x, y;
 	Body* body;
 	Vector3D angularMomentum;
 	double eccentricity;

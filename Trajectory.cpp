@@ -26,25 +26,17 @@ void Trajectory::updateTrajectory(double dt) {
 
 }
 
-void Trajectory::drawTrajectory(sf::RenderWindow * window, double scaleConstant,int xoffset,int yoffset) {
+void Trajectory::drawTrajectory(sf::RenderWindow * window, double scaleConstant) {
 	if (scaleConstant != scalec) {
 		for (int i = 0; i < pastP.size(); i++) {
-			pastP[i].position = sf::Vector2f((pastP[i].position.x - 400 -x)*(scaleConstant / scalec) + 400 + x,
-				(pastP[i].position.y - 240 - y)*(scaleConstant / scalec) + 240 + y);
+			pastP[i].position = sf::Vector2f((pastP[i].position.x - 400)*(scaleConstant / scalec) + 400,
+				(pastP[i].position.y - 240)*(scaleConstant / scalec) + 240);
 		}
 		this->scalec = scaleConstant;
 	}
-	if (xoffset != x || yoffset != y) {
-		for (int i = 0; i < pastP.size(); i++) {
-			pastP[i].position.x += (xoffset - x);
-			pastP[i].position.y += (yoffset - y);
-		}
-		this->x = xoffset;
-		this->y = yoffset;
-	}
 	pastP.push_back(sf::Vertex(sf::Vector2f(
-		(body->getPos().x - body->barycenter->getPos().x)*scalec + 400 +x,
-		(body->getPos().y - body->barycenter->getPos().y)*scalec + 240 + y)));
+		(body->getPos().x - body->barycenter->getPos().x)*scalec + 400,
+		(body->getPos().y - body->barycenter->getPos().y)*scalec + 240)));
 
 	if (pastP.size() > 10000) pastP.erase(pastP.begin());
 	window->draw(&pastP[0], pastP.size(), sf::LinesStrip);
